@@ -6,9 +6,8 @@ var canvas, backgroundImage;
 var rand;
 
 var gameState = "round4";
-var engine, world
-var s1;
-var block2 = [], block1 = [],stand1,stand2;
+var engine, world, s1;
+var block2 = [], block1 = [], stand1, stand2;
 var slingCounter = 0;
 var whipCounter;
 var const1;
@@ -23,6 +22,9 @@ var fire;
 var music1, music2, music3, music4
 var stand1;
 var edges;
+var portalGroup, portal, enemy_group;
+var isEndTimmerStarted = false;
+
 
 function preload() {
   bg = loadImage("images/sky.jpg");
@@ -51,8 +53,8 @@ function setup() {
   canvas = createCanvas(1550, 800);
 
   soldier1 = createSprite(300, 570);
-  soldier1.addImage(s1_shooting)
-  soldier1.scale = .15
+  soldier1.addImage(s1_shooting);
+  soldier1.scale = .15;
 
   //creating chain of circles for level 3
   var prev = null;
@@ -103,14 +105,21 @@ function setup() {
   jetGroup = new Group();
   heliGroup = new Group();
   bulletGroup = new Group();
-  enemyGroup = new Group();
+  enemy_group = new Group();
 
   score = 0;
-  //music1.loop();
+  music1.loop();
   edges = createEdgeSprites();
-  
+  portalGroup = new Group();
+  setInterval(spawnPortal, 10000);  //this is for creating
+
 }
 
+function startEndTimmer() {
+ // console.log("Started now")
+  setInterval(destroyPortal, 10001);// this is for destroying
+
+}
 
 function draw() {
   Engine.update(engine)
@@ -120,6 +129,12 @@ function draw() {
   textSize(20)
   text("Score:" + score, width - 400, 50);
 
+  if (keyDown(RIGHT_ARROW)) {
+    soldier1.x = soldier1.x + 10
+  }
+  if (keyDown(LEFT_ARROW)) {
+    soldier1.x = soldier1.x - 10
+  }
   soldier1.collide(edges);
 
   if (gameState === "start") {
@@ -159,12 +174,7 @@ function draw() {
       heliGroup.destroyEach();
       score = score + 1
     }
-    if (keyDown(RIGHT_ARROW)) {
-      soldier1.x = soldier1.x + 10
-    }
-    if (keyDown(LEFT_ARROW)) {
-      soldier1.x = soldier1.x - 10
-    }
+    
     if (frameCount >= 5000) {
       gameState = "start";
     }
@@ -215,7 +225,7 @@ function draw() {
     text("Press 'F' to continue", 700, 250);
 
     if (keyDown("F")) {
-      gameState = "play"
+      gameState = "start"
       score = 0
     }
   }
@@ -230,7 +240,7 @@ function draw() {
     text("Press 'L' to start", 700, 250);
     stroke(Math.round(random(0, 255)), Math.round(random(0, 255)), Math.round(random(0, 255)));
     text("Path to next Level , destroy the stack less than 4 attempts", 700, 300);
-    text("Press 'Space' key to attach the bomb after releasing", 700,350);
+    text("Press 'Space' key to attach the bomb after releasing", 700, 350);
     if (keyDown('L')) {
       gameState = "round3"
     }
@@ -284,17 +294,31 @@ function draw() {
     }
   }
   if (gameState === "round4") {
-    //setTimeout(spawnPortal, 10000);
-
-    for(var i = 200; i <800; i+30){
-      var enemy = createSprite(30*i, height/2,20,20)
-      enemy.shapeColor = ("red");
-      enemyGroup.add(enemy);
+    fill("red");
+    textSize(20);
+    text("ROUND 4 has started", 700, 200);
+    soldier1.x = mouseX;
+    if(! enemy_group[0]){
+      createEnemy();
     }
+    var enemyNumber;
+    if(frameCount % 240 === 0){
+      enemyNumber = Math.round(random(0,enemy_group.length-1));
+    }
+    
+    //enemy movement- boiler plate
+    if (enemy_group[enemyNumber] && soldier1.y - enemy_group[enemyNumber].y > 100 ) {
+      enemy_group[enemyNumber].pointTo(soldier1.x,soldier1.y + 15);
+      enemy_group[enemyNumber].rotation = enemy_group[enemyNumber].rotation + 90;
+      enemy_group[enemyNumber].setSpeedAndDirection(9,enemy_group[enemyNumber].rotation - 90);
+        
+    }
+    
+    //enemy colliding bootom edge shoud reappear
+    //enemy_group.collide (bottomEdge, reappear);
+  }
 
-}
-
-drawSprites();
+  drawSprites();
 }
 
 
@@ -359,9 +383,31 @@ function keyPressed() {
     sling1.attach(bomb1.body)
   }
 }
-
+//round4 functions
 function spawnPortal() {
-  portal = createSprite(Math.round(random(50, 1500), Math.round(random(200, 700))), 35, 35)
-  portal.addImage(portalImg)
-  portal.scale = .3
+  if (gameState == "round4") {
+   // console.log("spawn")
+    portal = createSprite(Math.round(random(50, 1000), Math.round(random(200, 700))), 35, 35)
+    portal.addImage(portalImg)
+    portal.scale = .3
+    portalGroup.add(portal);
+    if (!isEndTimmerStarted) {
+      startEndTimmer();
+      isEndTimmerStarted = true;
+    }
+    //console.log(portal.x + " " + portal.y)
+  }
+}
+function destroyPortal() {
+ // console.log("destroyed")
+  portalGroup[0].destroy();
+}
+
+function createEnemy(){
+  for (var i = 1; i <=7; i++) {
+    var enemy = createSprite(150*i, 150);
+   // enemy.addImage("enemy");
+    enemy.scale = 0.25;
+    enemy_group.add(enemy);
+  }
 }
